@@ -214,6 +214,20 @@ class DifyReleaseContractTests(unittest.TestCase):
         self.assertIn('value     = "vector,uuid-ossp"', extension)
         self.assertIn('resource "azurerm_redis_cache" "redis"', read("redis-cache.tf"))
 
+    def test_existing_resource_names_are_preserved(self) -> None:
+        main = read("main.tf")
+        self.assertIn('storage_account_name   = substr("${local.compact_prefix}stor01", 0, 24)', main)
+        self.assertIn('postgres_server_name   = substr("${local.compact_prefix}psql01", 0, 63)', main)
+        self.assertIn('keyvault_name          = substr("${local.compact_prefix}kv01", 0, 24)', main)
+        self.assertIn(
+            'foundry_account_name         = substr("${local.compact_prefix}foundry01", 0, 64)',
+            main,
+        )
+        self.assertIn(
+            'foundry_custom_subdomain     = substr("${local.compact_prefix}foundry01", 0, 64)',
+            main,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
