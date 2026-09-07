@@ -16,6 +16,7 @@ resource "azurerm_container_app" "agent_ssrf_proxy" {
   container_app_environment_id = azurerm_container_app_environment.dify-aca-env.id
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   template {
     max_replicas = 1
@@ -59,6 +60,7 @@ resource "azurerm_container_app" "local_sandbox" {
   container_app_environment_id = azurerm_container_app_environment.dify-aca-env.id
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   depends_on = [azurerm_container_app.agent_ssrf_proxy]
 
@@ -115,6 +117,7 @@ resource "azurerm_container_app" "agent_backend" {
   container_app_environment_id = azurerm_container_app_environment.dify-aca-env.id
   resource_group_name          = azurerm_resource_group.rg.name
   revision_mode                = "Single"
+  workload_profile_name        = "Consumption"
 
   depends_on = [
     azurerm_container_app.local_sandbox,

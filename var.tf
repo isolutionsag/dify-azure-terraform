@@ -86,13 +86,6 @@ variable "dify-agent-local-sandbox-image" {
   default     = "langgenius/dify-agent-local-sandbox:1.16.1"
 }
 
-variable "enable-dify-agent-v2" {
-  description = "Enable the Dify Agent v2 experience in the web UI while retaining classic Agent support"
-  type        = bool
-  default     = true
-}
-
-
 
 ################################################################################
 # Azure AI Foundry (Cognitive Account + Project)

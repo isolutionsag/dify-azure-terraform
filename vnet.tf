@@ -10,17 +10,19 @@ resource "azurerm_virtual_network" "vnet" {
 
 
 resource "azurerm_subnet" "privatelinksubnet" {
-  name                 = "PrivateLinkSubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["${var.ip-prefix}.1.0/24"]
+  name                              = "PrivateLinkSubnet"
+  resource_group_name               = azurerm_resource_group.rg.name
+  virtual_network_name              = azurerm_virtual_network.vnet.name
+  address_prefixes                  = ["${var.ip-prefix}.1.0/24"]
+  private_endpoint_network_policies = "Enabled"
 }
 
 resource "azurerm_subnet" "acasubnet" {
-  name                 = "ACASubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["${var.ip-prefix}.16.0/20"]
+  name                              = "ACASubnet"
+  resource_group_name               = azurerm_resource_group.rg.name
+  virtual_network_name              = azurerm_virtual_network.vnet.name
+  address_prefixes                  = ["${var.ip-prefix}.16.0/20"]
+  private_endpoint_network_policies = "Enabled"
 
   delegation {
     name = "aca-delegation"
@@ -34,11 +36,12 @@ resource "azurerm_subnet" "acasubnet" {
 }
 
 resource "azurerm_subnet" "postgressubnet" {
-  name                 = "PostgresSubnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["${var.ip-prefix}.2.0/24"]
-  service_endpoints    = ["Microsoft.Storage"]
+  name                              = "PostgresSubnet"
+  resource_group_name               = azurerm_resource_group.rg.name
+  virtual_network_name              = azurerm_virtual_network.vnet.name
+  address_prefixes                  = ["${var.ip-prefix}.2.0/24"]
+  service_endpoints                 = ["Microsoft.Storage"]
+  private_endpoint_network_policies = "Enabled"
   delegation {
     name = "postgres-delegation"
 
