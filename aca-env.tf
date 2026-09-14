@@ -93,6 +93,10 @@ resource "azurerm_container_app" "ssrfproxy" {
   workload_profile_name        = "Consumption"
 
   template {
+    # Forces a new revision (and squid restart) whenever the rendered squid.conf changes,
+    # since squid only reads its config file at process startup, not from the live file mount.
+    revision_suffix = substr(md5(local_file.ssrfproxy_squid_conf_rendered.content), 0, 10)
+
     tcp_scale_rule {
       name                = "ssrfproxy"
       concurrent_requests = "10"
@@ -433,6 +437,9 @@ resource "azurerm_container_app" "sandbox" {
   workload_profile_name        = "Consumption"
 
   template {
+    # Forces a new revision (container restart + pip re-install) whenever python-requirements.txt changes.
+    revision_suffix = substr(filemd5("mountfiles/sandbox/python-requirements.txt"), 0, 10)
+
     tcp_scale_rule {
       name                = "sandbox"
       concurrent_requests = "10"
@@ -454,23 +461,42 @@ resource "azurerm_container_app" "sandbox" {
       }
       env {
         name  = "WORKER_TIMEOUT"
-        value = "15"
+        value = "600"
       }
       env {
         name  = "ENABLE_NETWORK"
         value = "true"
       }
+      # Short name "ssrfproxy" relies on the resolv.conf search-domain suffix, which the sandbox's
+      # chrooted python process fails to resolve (NameResolutionError). Use the internal FQDN instead.
       env {
         name  = "HTTP_PROXY"
-        value = "http://ssrfproxy:3128"
+        value = "http://${azurerm_container_app.ssrfproxy.ingress[0].fqdn}:3128"
       }
       env {
         name  = "HTTPS_PROXY"
-        value = "http://ssrfproxy:3128"
+        value = "http://${azurerm_container_app.ssrfproxy.ingress[0].fqdn}:3128"
+      }
+      # dify-sandbox 0.2.15's ALLOWED_SYSCALLS REPLACES the built-in whitelist (it doesn't merge until the
+      # unreleased main branch fix for langgenius/dify-sandbox#275/#276/#277), so this must list the full set:
+      # default ALLOW_SYSCALLS + ALLOW_NETWORK_SYSCALLS, plus faccessat2/statx/sched_getaffinity/pipe2 needed
+      # for HTTPS/TLS cert verification (missing from 0.2.15's default whitelist, causing "Operation not permitted").
+      env {
+        name  = "ALLOWED_SYSCALLS"
+        value = "0,1,3,5,7,8,9,10,11,12,13,14,15,16,24,25,35,39,41,42,43,44,45,46,47,49,50,51,52,54,55,60,63,72,96,102,105,106,110,116,131,138,186,201,202,204,217,228,230,231,233,234,257,262,270,271,273,274,281,291,293,307,318,332,334,439"
       }
       env {
         name  = "SANDBOX_PORT"
         value = "8194"
+      }
+      # Consumed by code nodes calling Azure AI Content Understanding.
+      env {
+        name  = "CONTENT_UNDERSTANDING_ENDPOINT"
+        value = azurerm_cognitive_account.foundry.endpoint
+      }
+      env {
+        name  = "CONTENT_UNDERSTANDING_KEY"
+        value = azurerm_cognitive_account.foundry.primary_access_key
       }
 
       volume_mounts {
@@ -537,6 +563,10 @@ resource "azurerm_container_app" "worker" {
       env {
         name  = "DEPLOY_ENV"
         value = "PRODUCTION"
+      }
+      env {
+        name  = "FILES_URL"
+        value = "https://${azurerm_container_app.nginx.ingress[0].fqdn}"
       }
 
       # INTERNAL_FILES_URL is used for plugin daemon communication within Docker network
@@ -661,6 +691,10 @@ resource "azurerm_container_app" "worker" {
       env {
         name  = "CODE_EXECUTION_ENDPOINT"
         value = "http://sandbox:8194"
+      }
+      env {
+        name  = "CODE_EXECUTION_READ_TIMEOUT"
+        value = "600"
       }
 
       # SSRF Proxy configuration
@@ -924,7 +958,7 @@ resource "azurerm_container_app" "api" {
       }
       env {
         name  = "FILES_URL"
-        value = ""
+        value = "https://${azurerm_container_app.nginx.ingress[0].fqdn}"
       }
       # INTERNAL_FILES_URL is used for plugin daemon communication within Docker network
       # Required for proper plugin file access
@@ -1076,6 +1110,10 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "CODE_EXECUTION_ENDPOINT"
         value = "http://sandbox:8194"
+      }
+      env {
+        name  = "CODE_EXECUTION_READ_TIMEOUT"
+        value = "600"
       }
       env {
         name  = "CODE_MAX_NUMBER"

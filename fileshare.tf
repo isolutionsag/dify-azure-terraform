@@ -32,6 +32,23 @@ module "ssrf_proxy_fileshare" {
   storage_account_id = azurerm_storage_account.acafileshare.id
   local_mount_dir    = "mountfiles/ssrfproxy"
   share_name         = "ssrfproxy"
+  exclude_files      = ["squid.conf"]
+}
+
+# squid.conf is templated separately so the allowed nginx domain always matches the deployed FQDN
+resource "local_file" "ssrfproxy_squid_conf_rendered" {
+  filename = "${path.module}/.rendered/ssrfproxy/squid.conf"
+  content = templatefile("mountfiles/ssrfproxy/squid.conf", {
+    nginx_fqdn = azurerm_container_app.nginx.ingress[0].fqdn
+  })
+}
+
+resource "azurerm_storage_share_file" "ssrfproxy_squid_conf" {
+  name              = "squid.conf"
+  storage_share_url = module.ssrf_proxy_fileshare.share_url
+  content_type      = "text/plain"
+  source            = local_file.ssrfproxy_squid_conf_rendered.filename
+  content_md5       = md5(local_file.ssrfproxy_squid_conf_rendered.content)
 }
 
 module "agent_ssrf_proxy_fileshare" {

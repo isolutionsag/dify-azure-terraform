@@ -18,3 +18,9 @@ variable "quota" {
   type        = number
   default     = 50
 }
+
+variable "exclude_files" {
+  description = "Relative file paths (within local_mount_dir) to skip uploading, e.g. when managed by a separate templated resource"
+  type        = list(string)
+  default     = []
+}
