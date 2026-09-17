@@ -324,14 +324,14 @@ resource "azurerm_container_app" "plugin_daemon" {
         value = "/tmp/plugin_workdir"
       }
 
-      # Plugin execution configuration
+      # Plugin execution configuration - signature verification disabled for trusted internal use
       env {
         name  = "FORCE_VERIFYING_SIGNATURE"
-        value = "true"
+        value = "false"
       }
       env {
         name  = "ENFORCE_LANGGENIUS_PLUGIN_SIGNATURES"
-        value = "true"
+        value = "false"
       }
       env {
         name  = "MAX_PLUGIN_PACKAGE_SIZE"
@@ -433,6 +433,8 @@ resource "azurerm_container_app" "sandbox" {
   workload_profile_name        = "Consumption"
 
   template {
+    # Forces a new revision (container restart + pip re-install) whenever python-requirements.txt changes.
+    revision_suffix = substr(filemd5("mountfiles/sandbox/python-requirements.txt"), 0, 10)
     tcp_scale_rule {
       name                = "sandbox"
       concurrent_requests = "10"
@@ -924,7 +926,7 @@ resource "azurerm_container_app" "api" {
       }
       env {
         name  = "FILES_URL"
-        value = ""
+        value = "https://${azurerm_container_app.nginx.ingress[0].fqdn}"
       }
       # INTERNAL_FILES_URL is used for plugin daemon communication within Docker network
       # Required for proper plugin file access
