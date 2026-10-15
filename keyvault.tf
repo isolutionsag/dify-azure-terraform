@@ -13,12 +13,42 @@ resource "azurerm_key_vault" "dify" {
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
 
-  # User requested no private endpoint integration for Key Vault.
-  public_network_access_enabled = true
+  public_network_access_enabled = false
 
   soft_delete_retention_days = 7
 
   tags = local.common_tags
+}
+
+resource "azurerm_private_dns_zone" "keyvault" {
+  name                = "privatelink.vaultcore.azure.net"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "keyvault" {
+  name                  = "keyvault-dns-link"
+  resource_group_name   = azurerm_resource_group.rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.keyvault.name
+  virtual_network_id    = azurerm_virtual_network.vnet.id
+}
+
+resource "azurerm_private_endpoint" "keyvault" {
+  name                = "pe-keyvault"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.privatelinksubnet.id
+
+  private_service_connection {
+    name                           = "psc-keyvault"
+    private_connection_resource_id = azurerm_key_vault.dify.id
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "pdz-keyvault"
+    private_dns_zone_ids = [azurerm_private_dns_zone.keyvault.id]
+  }
 }
 
 resource "azurerm_key_vault_access_policy" "deployer" {

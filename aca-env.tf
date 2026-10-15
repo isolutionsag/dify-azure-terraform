@@ -541,6 +541,14 @@ resource "azurerm_container_app" "worker" {
         value = "PRODUCTION"
       }
 
+      # FILES_URL is used to build public, signed file download links (e.g. tool/plugin
+      # output files such as the Markdown Extractor's generated documents). Without it the
+      # worker falls back to Dify's default "http://127.0.0.1:5001", which is not reachable
+      # through the nginx reverse proxy.
+      env {
+        name  = "FILES_URL"
+        value = "https://${azurerm_container_app.nginx.ingress[0].fqdn}"
+      }
       # INTERNAL_FILES_URL is used for plugin daemon communication within Docker network
       env {
         name  = "INTERNAL_FILES_URL"
@@ -1101,11 +1109,11 @@ resource "azurerm_container_app" "api" {
       }
       env {
         name  = "CODE_MAX_OBJECT_ARRAY_LENGTH"
-        value = "30"
+        value = "100"
       }
       env {
         name  = "CODE_MAX_STRING_ARRAY_LENGTH"
-        value = "30"
+        value = "100"
       }
       env {
         name  = "CODE_MAX_NUMBER_ARRAY_LENGTH"

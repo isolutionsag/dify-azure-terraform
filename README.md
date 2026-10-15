@@ -21,7 +21,7 @@ Important: this stack is now pinned to `azurerm` provider v4.x.
 | db | Azure Database for PostgreSQL Flexible Server |
 | redis | Azure Cache for Redis |
 | storage | Azure Storage Account (Blob + File Shares) |
-| keyvault | Azure Key Vault (public endpoint, no private endpoint) |
+| keyvault | Azure Key Vault (private endpoint enabled) |
 | foundry | Azure AI Foundry Account + Project |
 
 ## Environment strategy (recommended)
